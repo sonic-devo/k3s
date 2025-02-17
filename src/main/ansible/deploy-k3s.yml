@@ -1,0 +1,8 @@
+---
+
+- name: deploy-k3s 
+  hosts: localhost
+  tasks:
+  - name: Deploy vms
+    import_role:
+      name: deploy-vms

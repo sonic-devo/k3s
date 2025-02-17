@@ -1,0 +1,23 @@
+vagrant:
+  directory: /home/alban/devops/tools/vagrant/k3s-eng-test1.lo.act.org
+
+cluster:
+  vip: 192.168.100.10
+
+common_nodes:
+  ansible_password: sonicdev
+
+nodes:
+  - hostname: "k3s-eng-test1-01.lo.act.org"
+    cpus: 1
+    memory: 4096
+    ipaddr: "192.168.100.11"
+  - hostname: "k3s-eng-test1-02.lo.act.org"
+    cpus: 1
+    memory: 4096
+    ipaddr: "192.168.100.12"
+  - hostname: "k3s-eng-test1-03.lo.act.org"
+    cpus: 1
+    memory: 4096
+    ipaddr: "192.168.100.13"    
+  

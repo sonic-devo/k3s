@@ -1,0 +1,45 @@
+$INIT_SCRIPT = <<-'END'
+
+    # Create ansible user and its password
+    useradd -G wheel ansible
+    echo ansible:{{ common_nodes.ansible_password }} | chpasswd
+
+    # Allow sudoers to connect as root without password
+    sed -i "s/%wheel\tALL=(ALL)\tALL/# %wheel\tALL=(ALL)\tALL/" /etc/sudoers
+    sed -i "s/# %wheel\tALL=(ALL)\tNOPASSWD: ALL/%wheel\tALL=(ALL)\tNOPASSWD: ALL/" /etc/sudoers
+    # Allow password authentication on the machine
+    # sed -i "s/#PasswordAuthentication yes/PasswordAuthentication yes/" /etc/ssh/sshd_config
+    sed -i "s/PasswordAuthentication no/#PasswordAuthentication yes/" /etc/ssh/sshd_config
+    systemctl restart sshd
+
+    # Copy ansible public ssh key for ansible user. This key was previously provisioned from host to ~vagrant
+    mkdir -p /home/ansible/.ssh
+    cp ~vagrant/id_rsa.pub ~ansible/.ssh/authorized_keys
+    chown -R ansible:ansible /home/ansible/.ssh
+
+END
+
+NODES = [
+{% for node in nodes %}
+    { :hostname => "{{ node.hostname }}", :cpus => {{ node.cpus }}, :mem => {{ node.memory }}, ip: "{{ node.ipaddr }}" },        
+{% endfor %}
+]
+
+Vagrant.configure(2) do |config|
+    config.vm.box = "generic/rocky9"
+    NODES.each do |node|
+        config.vm.define node[:hostname] do |nodeconfig|
+            nodeconfig.vm.hostname = node[:hostname]
+            nodeconfig.vm.network "private_network", ip: node[:ip]
+            nodeconfig.vm.provider "virtualbox" do |vm|
+                vm.memory = node[:mem]
+                vm.cpus = node[:cpus]             
+            end
+            # Copy ansible public key from host to VMs vagrant home. The key will be moved by the INIT script to the
+            # ansible and root users. The key key cannot be directly moved to these users because provisioning is done
+            # by the vagrant user which is not entitled on these user directories
+            nodeconfig.vm.provision "file", source: "~/.ssh/ansible_id_rsa.pub", destination: "~/id_rsa.pub"
+            nodeconfig.vm.provision "shell", inline:$INIT_SCRIPT
+        end
+    end
+end

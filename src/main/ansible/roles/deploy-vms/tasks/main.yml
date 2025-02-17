@@ -1,0 +1,32 @@
+---
+
+- name: Get Vagrantfile file stat 
+  stat:
+    path: "{{ vagrant.directory }}/Vagrantfile"
+  register: vagrantfile_file
+
+- name: Create directory if Vagrantfile file and directory do not exist 
+  file:
+    path: "{{ vagrant.directory }}"
+    state: directory
+    mode: '0755'
+  when: not vagrantfile_file.stat.exists 
+
+- name: Create Vagrantfile in dictory project directoy
+  template:
+    src: Vagrantfile.j2
+    dest: "{{ vagrant.directory }}/Vagrantfile"
+    mode: '0644'
+  when: not vagrantfile_file.stat.exists 
+
+- name: Start virtual machines
+  args:
+    chdir: "{{ vagrant.directory }}"
+  command: vagrant up
+
+- name: Update inventory file
+  template:
+    src: inventory.ini.j2
+    dest: ../../inventory-2.ini
+    mode: '0644'
+  
